@@ -1,3 +1,12 @@
+
+OS := $(shell uname -s)
+EXTRA_INCLUDES = 
+EXTRA_LIBS =
+ifeq ($(OS), Darwin)
+    EXTRA_INCLUDES = -I/opt/homebrew/include
+    EXTRA_LIBS = -L/opt/homebrew/lib
+endif
+
 OBJECTS=unixds.o inetds.o soapds.o proto.o
 
 help:
@@ -16,7 +25,7 @@ help:
 	@echo "	sudo apt upgrade"
 	
 serverds: threeds.c ${OBJECTS} SampleServices.nsmap
-	gcc -g threeds.c soapC.c soapServer.c ${OBJECTS} -l pthread -l gsoap -Wall -o serverds
+	gcc -g threeds.c soapC.c soapServer.c ${OBJECTS} $(EXTRA_INCLUDES) $(EXTRA_LIBS) -l pthread -l gsoap -Wall -o serverds -lconfig
 
 unixds.o: unixds.c 
 	gcc -g unixds.c -c -o unixds.o -Wall -l pthread
@@ -28,7 +37,7 @@ proto.o: proto.c proto.h
 	gcc -g proto.c -c -o proto.o -Wall  -l pthread
 
 soapds.o: soapds.c SampleServices.nsmap
-	gcc -g soapds.c -c -o soapds.o -Wall  -l pthread -l gsoap
+	gcc -g soapds.c -c -o soapds.o -Wall $(EXTRA_INCLUDES)
 
 SampleServices.nsmap: sclient.h
 	soapcpp2 -S -c -x sclient.h
