@@ -1,0 +1,18 @@
+# Ignore object files, executable files, and makefilebun
+*.a
+*.o
+makefilebun
+runnable
+serverds
+serverds.dSYM
+skeleton/inet
+skeleton/inetclient
+skeleton/serverds
+
+# Ignore directories
+
+soap-sample/client_files/INET/
+soap-sample/client_files/SOAP/
+soap-sample/SOAP_CLIENT/
+
+
