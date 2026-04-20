@@ -12,6 +12,7 @@
 #include <arpa/inet.h>
 #include <time.h>
 #include "proto.h"
+#include "queue.h"
 
 int inet_socket(uint16_t port, short reuse) {
     int sock;
@@ -342,6 +343,11 @@ void* inet_main(void* args) {
                                 fprintf(stderr, "File size: %d bytes\n", file_size);
 
                                 write_stats_file(clientID, filename, file_size, "IMAGE_RECEIVED");
+                                // Cream o sarcina noua
+                                ImageTask task; 
+                                task.socket = i; // Punem socket-ul in structura
+                                // Trimitem structura completa in coada
+                                push_task(task);
 
                                 h.opID = OPR_ECHO;
                                 if (writeSingleString(i, h, response) < 0) {
