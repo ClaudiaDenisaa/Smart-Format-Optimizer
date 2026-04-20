@@ -1,0 +1,70 @@
+Project demo steps
+
+0. Go to project folder in every terminal
+cd /mnt/c/Users/Remus/Downloads/Smart-Format-Optimizer-main/Smart-Format-Optimizer-main/skeleton
+
+1. Optional clean build
+make clean
+
+2. Compile server
+make serverds
+
+3. Compile client
+make inetclient
+
+4. Compile admin ncurses
+gcc -g admin_ncurses.c -Wall -lncurses -o admin_ncurses
+
+5. Open 3 WSL terminals
+
+Terminal 1 - Server
+cd /mnt/c/Users/Remus/Downloads/Smart-Format-Optimizer-main/Smart-Format-Optimizer-main/skeleton
+./serverds
+
+What to say:
+Start the TCP server. It waits for client connections and receives image data.
+
+Terminal 2 - Admin monitor
+cd /mnt/c/Users/Remus/Downloads/Smart-Format-Optimizer-main/Smart-Format-Optimizer-main/skeleton
+./admin_ncurses
+
+What to say:
+Start the admin monitor. It reads the server statistics and displays them in real time in an ncurses interface.
+
+Terminal 3 - Client
+cd /mnt/c/Users/Remus/Downloads/Smart-Format-Optimizer-main/Smart-Format-Optimizer-main/skeleton
+./inetclient poza.jpg
+
+If the image is not in the skeleton folder, use full path:
+./inetclient /mnt/c/Users/Remus/Pictures/poza.jpg
+
+What to say:
+The client reads a real image from disk, extracts the filename, and sends the filename, file size, and binary data to the server.
+
+Expected output
+
+Server terminal:
+- new client detected
+- image received from client
+- filename
+- file size
+
+Client terminal:
+- loaded image
+- got a clientID
+- sending image to server
+- image sent successfully
+- server reply: IMAGE_RECEIVED
+
+Admin terminal:
+- Images processed
+- Last filename
+- Last filesize
+- Last client id
+- Last status
+- Last refresh
+- Stats file: OK
+
+Extra demo step
+Send the image again to show that Images processed increases:
+./inetclient poza.jpg

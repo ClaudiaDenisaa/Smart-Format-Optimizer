@@ -1,0 +1,5 @@
+images_processed=4
+last_filename=poza.jpg
+last_filesize=99407
+last_client_id=1776706448
+last_status=IMAGE_RECEIVED
