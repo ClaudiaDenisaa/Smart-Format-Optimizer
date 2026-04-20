@@ -9,10 +9,12 @@
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <libconfig.h>
+#include "queue.h"
 
 void *unix_main (void *args) ;
 void *inet_main (void *args) ;
 void *soap_main (void *args) ;
+void *worker_main (void *args) ;
 
 // WINDOW *mainwnd ;
 #define UNIXSOCKET "/tmp/unixds"
@@ -24,11 +26,13 @@ int main () {
   config_t cfg;
   config_init(&cfg);
   int iport, sport ;
+  
+/* UNIX Thread: the UNIX server component */
+/* INET Thread: the INET server component */ 
+/* SOAP Thread: the SOAP server component */
+/* The Worker Thread: use it for WORK tasks (various) */
 
-  pthread_t unixthr, /* UNIX Thread: the UNIX server component */
-	inetthr,     /* INET Thread: the INET server component */ 
-	soapthr ;     /* SOAP Thread: the SOAP server component */
-//	workerthr ;  /* The Worker Thread: use it for WORK tasks (various) */
+  pthread_t unixthr, inetthr, soapthr, workerthr ;  
 
   if (!config_read_file(&cfg, "server.cfg")) {
     fprintf(stderr, "Eroare la citire config: %s la linia %d\n", 
@@ -61,14 +65,14 @@ int main () {
 
   sport = SOAPPORT ;
   pthread_create (&soapthr, NULL, soap_main, &sport) ;
-/*
-  pthread_create (&workerthr, NULL, work_main, NULL) ;
-    Implementarea firului de lucru:
-	acest fir va rezolva sarcinile de lucru uzuale, bazate pe cereri INET/SOAP	
-	firul de lucru proceseaza cererile din coada sau este suspendat (vezi mai jos)
-	ar putea utiliza mecanismul 'condition variable': orice cerere noua este semnalata catre firul de lucru 
-		prin acest mecanism.
- */
+
+  pthread_create (&workerthr, NULL, worker_main, NULL) ;
+/*Implementarea firului de lucru:
+  acest fir va rezolva sarcinile de lucru uzuale, bazate pe cereri INET/SOAP	
+  firul de lucru proceseaza cererile din coada sau este suspendat (vezi mai jos)
+  ar putea utiliza mecanismul 'condition variable': orice cerere noua este semnalata catre firul de lucru 
+  prin acest mecanism.*/
+		
   pthread_join (unixthr, NULL) ;
   pthread_join (inetthr, NULL) ;
   pthread_join (soapthr, NULL) ;
@@ -80,5 +84,26 @@ int main () {
   unlink (UNIXSOCKET) ;
   config_destroy(&cfg);
   return 0 ;
+}
+
+void *worker_main (void *args) {
+    fprintf(stderr, "[WORKER] Firul de procesare a pornit si asteapta poze...\n");
+    
+    while (1) {
+        // Asteapta pana cand apare ceva in coada (folosind pop_task)
+        ImageTask task = pop_task(); 
+        
+        fprintf(stderr, "[WORKER] Am extras o poza din coada! Urmeaza procesarea...\n");
+
+        /* AICI VA VENI Membrului 3
+           Va apela functia de compresie aici.
+        */
+        
+        // Simulam o mica asteptare ca si cum am procesa
+        sleep(1); 
+        
+        fprintf(stderr, "[WORKER] Procesare finalizata pentru socketul %d\n", task.socket);
+    }
+    return NULL;
 }
 

@@ -7,7 +7,7 @@ ifeq ($(OS), Darwin)
     EXTRA_LIBS = -L/opt/homebrew/lib
 endif
 
-OBJECTS=unixds.o inetds.o soapds.o proto.o
+OBJECTS=unixds.o inetds.o soapds.o proto.o queue.o
 
 help:
 	@echo "Use one of these"
@@ -24,7 +24,7 @@ help:
 	@echo "	sudo apt update"
 	@echo "	sudo apt upgrade"
 	
-serverds: threeds.c ${OBJECTS} SampleServices.nsmap
+serverds: threeds.c queue.o ${OBJECTS} SampleServices.nsmap
 	gcc -g threeds.c soapC.c soapServer.c ${OBJECTS} $(EXTRA_INCLUDES) $(EXTRA_LIBS) -l pthread -l gsoap -Wall -o serverds -lconfig
 
 unixds.o: unixds.c 
@@ -35,6 +35,9 @@ inetds.o: inetds2.c proto.o
 
 proto.o: proto.c proto.h
 	gcc -g proto.c -c -o proto.o -Wall  -l pthread
+	
+queue.o: queue.c queue.h
+	gcc -g queue.c -c -o queue.o -Wall -l pthread	
 
 soapds.o: soapds.c SampleServices.nsmap
 	gcc -g soapds.c -c -o soapds.o -Wall $(EXTRA_INCLUDES)
