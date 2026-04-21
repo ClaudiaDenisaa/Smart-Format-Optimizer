@@ -264,7 +264,7 @@
 </binding>
 
 <service name="SampleServices">
-  <documentation>gSOAP 2.8.132 generated service definition</documentation>
+  <documentation>gSOAP 2.8.141 generated service definition</documentation>
   <port name="SampleServices" binding="tns:SampleServices">
     <SOAP:address location="http://localhost:80"/>
   </port>

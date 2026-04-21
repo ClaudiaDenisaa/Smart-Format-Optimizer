@@ -1,4 +1,9 @@
-// Simple defines for supporting a plain protocol
+#ifndef PROTO_H
+#define PROTO_H
+
+#include <stddef.h>
+
+/* Simple defines for supporting a plain protocol */
 
 #define OPR_CONNECT    0
 #define OPR_ECHO       1
@@ -7,68 +12,86 @@
 #define OPR_ADD        4
 #define OPR_SEND_IMAGE 5
 #define OPR_BYE        6
+#define OPR_OPTIMIZE   7
 
 typedef struct msgHeader {
-  int msgSize ;				  // the size of current message
-  int clientID ;				  // your clientID
-  int opID ;   				  // the requested operation.
-} msgHeaderType ;
-// 4 4 4
-typedef struct int2Msg {
-  int msg1, msg2 ;
-} msg2IntType; 
-// 4 4 
+    int msgSize;    /* dimensiunea mesajului curent */
+    int clientID;   /* id-ul clientului */
+    int opID;       /* operatia ceruta */
+} msgHeaderType;
+
+/* mesaj simplu cu un int */
 typedef struct intMsg {
-  int msg ;
-} msgIntType ;
-// 4
+    int msg;
+} msgIntType;
 
-typedef struct singleIntMsg {
-  msgHeaderType header ;
-  msgIntType i ;				  // i.msg
-} singleIntMsgType ;
-// 12 4
+/* mesaj cu doua int-uri */
+typedef struct int2Msg {
+    int msg1;
+    int msg2;
+} msg2IntType;
 
-typedef struct multiIntMsg {
-  msgHeaderType header ;
-  msg2IntType i ;				  // i.msg1, i.msg2
-} multiIntMsgType ;
-// 12 8
-
+/* mesaj simplu cu un sir */
 typedef struct stringMsg {
-//  int strSize ; 				  // For a string it is required to send its length!
-  char *msg ;
-} msgStringType ;
+    char *msg;
+} msgStringType;
 
-
+/* mesaj cu doua siruri */
 typedef struct string2Msg {
-  msgStringType msg1, msg2 ;
-} msg2StringType ;
+    msgStringType msg1;
+    msgStringType msg2;
+} msg2StringType;
 
+/* header + un int */
+typedef struct singleIntMsg {
+    msgHeaderType header;
+    msgIntType i;
+} singleIntMsgType;
+
+/* header + doua int-uri */
+typedef struct multiIntMsg {
+    msgHeaderType header;
+    msg2IntType i;
+} multiIntMsgType;
+
+/* header + un sir */
 typedef struct singleStringMsg {
-  msgHeaderType header ;
-  msgStringType msg ;				  // msg.strMsg 
-} singleStringType ;
+    msgHeaderType header;
+    msgStringType msg;
+} singleStringType;
 
+/* header + doua siruri */
 typedef struct multiStringMsg {
-  msgHeaderType header ;
-  msg2StringType s ;				  // s.msg1.strMsg, s.msg2.strMsg
-} multiStringType ;
+    msgHeaderType header;
+    msg2StringType s;
+} multiStringType;
 
-msgHeaderType peekMsgHeader (int sock) 	; // Use this function to 'peek' into messge structure. Take a look, it doesn't heart :)
-int readSingleInt (int sock, msgIntType *m)  		; // Simple read/write facilities for SingleInt
-int readMultiInt (int sock, msgIntType *m1, msgIntType *m2)  		; // Simple read/write facilities for MultiInt
-int readSingleString (int sock, msgStringType *m)  	; // Simple read/write facilities for singleString
-int writeSingleInt (int sock, msgHeaderType h, int i) ;			// Build the message and send it!
-int writeMultiInt (int sock, msgHeaderType h, int i1, int i2) ;		// Build the message and send it!
-int writeSingleString (int sock, msgHeaderType h, char *s) ;			// Build the message and send it!
-int writeMultiString (int sock, msgHeaderType h, char *s1, char *s2) ;	// Build the message and send it!
-int send_all(int sock, const void* buf, size_t len);
-int recv_all(int sock, void* buf, size_t len);
+/* mesaj binar pentru imagini */
+typedef struct binaryMsg {
+    int size;
+    unsigned char *data;
+} msgBinaryType;
 
-int writeImageMessage(int sock, msgHeaderType h, const char* filename,
-    const unsigned char* data, int file_size);
+/* functii deja folosite in proiect */
+msgHeaderType peekMsgHeader(int sock);
+int readSingleInt(int sock, msgIntType *m);
+int readMultiInt(int sock, msgIntType *m1, msgIntType *m2);
+int readSingleString(int sock, msgStringType *m);
+int writeSingleInt(int sock, msgHeaderType h, int i);
+int writeMultiInt(int sock, msgHeaderType h, int i1, int i2);
+int writeSingleString(int sock, msgHeaderType h, char *s);
+int writeMultiString(int sock, msgHeaderType h, char *s1, char *s2);
+int send_all(int sock, const void *buf, size_t len);
+int recv_all(int sock, void *buf, size_t len);
 
-int readImageMessage(int sock, char** filename,
-    unsigned char** data, int* file_size);
+int writeImageMessage(int sock, msgHeaderType h, const char *filename,
+                      const unsigned char *data, int file_size);
 
+int readImageMessage(int sock, char **filename,
+                     unsigned char **data, int *file_size);
+
+int readBinary(int sock, msgBinaryType *b);
+int writeBinary(int sock, msgHeaderType h, unsigned char *data, int size);
+int detect_image_format(unsigned char *data, int size);
+
+#endif

@@ -1,5 +1,6 @@
-images_processed=6
+images_processed=23
 last_filename=poza.jpg
-last_filesize=99407
-last_client_id=1776715675
-last_status=IMAGE_RECEIVED
+last_filesize_initial=99407
+last_filesize_final=68049
+last_client_id=1776791886
+last_status=OPTIMIZED

@@ -1,54 +1,28 @@
-/**
- * IR3 2026
- * modul retea inet
- *
- * Programul se ocupa de partea de comunicare TCP cu clientii.
- * Serverul accepta conexiuni, citeste mesajele primite si executa
- * operatia ceruta in functie de codul primit in header.
- *
- * Operatii tratate aici:
- *  - client nou -> primeste un id
- *  - echo
- *  - add
- *  - neg
- *  - send image
- *  - optimize
- *  - bye
- *
- * Pentru imaginile primite, datele sunt puse in coada pentru procesare.
- */
+#include <pthread.h>
+#include <stdio.h>
+#include <ncurses.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/select.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <time.h>
+#include "proto.h"
+#include "queue.h"
 
-#include <pthread.h>      /* utilizat pentru: pthread_exit */
-#include <stdio.h>        /* utilizat pentru: FILE, fopen, fclose, fprintf, perror */
-#include <ncurses.h>      /* inclus in proiect */
-#include <stdlib.h>       /* utilizat pentru: malloc, realloc, free, atoi, EXIT_SUCCESS */
-#include <string.h>       /* utilizat pentru: strlen, strncmp, memcpy, memset */
-#include <unistd.h>       /* utilizat pentru: close */
-#include <sys/types.h>    /* tipuri de baza pentru socketi */
-#include <sys/socket.h>   /* utilizat pentru: socket, bind, listen, accept, recv, send */
-#include <sys/select.h>   /* utilizat pentru: select, fd_set */
-#include <netinet/in.h>   /* utilizat pentru: sockaddr_in */
-#include <netdb.h>        /* functii de retea */
-#include <arpa/inet.h>    /* conversii adrese retea */
-#include <time.h>         /* utilizat pentru: time, localtime, strftime */
-#include "proto.h"        /* tipurile si functiile pentru protocol */
-#include "queue.h"        /* pentru ImageTask si push_task */
-
-/*
- * Creeaza socketul TCP al serverului si face bind pe portul primit.
- * Daca reuse este activ, se seteaza si SO_REUSEADDR.
- */
 int inet_socket(uint16_t port, short reuse) {
     int sock;
     struct sockaddr_in name;
 
-    /* cream socket TCP IPv4 */
     sock = socket(PF_INET, SOCK_STREAM, 0);
     if (sock < 0) {
         pthread_exit(NULL);
     }
 
-    /* permitem refolosirea adresei, daca s-a cerut */
     if (reuse) {
         int reuseAddrON = 1;
         if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuseAddrON, sizeof(reuseAddrON)) < 0) {
@@ -57,12 +31,10 @@ int inet_socket(uint16_t port, short reuse) {
         }
     }
 
-    /* completam structura cu datele serverului */
     name.sin_family = AF_INET;
     name.sin_port = htons(port);
     name.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    /* legam socketul de port */
     if (bind(sock, (struct sockaddr*)&name, sizeof(name)) < 0) {
         perror("bind");
         pthread_exit(NULL);
@@ -71,10 +43,6 @@ int inet_socket(uint16_t port, short reuse) {
     return sock;
 }
 
-/*
- * Citeste id-ul unui client de pe socket.
- * Intoarce -1 daca apare o eroare.
- */
 int get_client_id(int sock) {
     int size;
     long clientid;
@@ -89,31 +57,19 @@ int get_client_id(int sock) {
     return (int)clientid;
 }
 
-/*
- * Trimite un intreg catre client.
- */
 int write_client_int(int sock, long id) {
     int size;
-
     fprintf(stderr, "wcl:\tWriting %ld\n", id);
     if ((size = send(sock, &id, sizeof(id), 0)) < 0) {
         return -1;
     }
-
     return EXIT_SUCCESS;
 }
 
-/*
- * Varianta de wrapper pentru trimiterea id-ului clientului.
- */
 int write_client_id(int sock, long id) {
     return write_client_int(sock, id);
 }
 
-/*
- * Construieste un mesaj din doua siruri si il trimite clientului.
- * Sirurile sunt concatenate in formatul: o2 o1
- */
 int write_client_concat(int sock, char* o1, char* o2) {
     int size, bsize;
     char* b;
@@ -136,10 +92,6 @@ int write_client_concat(int sock, char* o1, char* o2) {
     return EXIT_SUCCESS;
 }
 
-/*
- * Citeste un sir de caractere de la client.
- * Datele sunt citite in bucati de cate 256 bytes.
- */
 char* get_client_str(int sock, int* dsize) {
     char buffer[256];
     char* result = NULL;
@@ -151,11 +103,9 @@ char* get_client_str(int sock, int* dsize) {
         if (result == NULL) {
             return NULL;
         }
-
         memcpy(result + isize, buffer, (size_t)size);
         isize += size;
         result[isize] = 0;
-
         if (size != 256) {
             break;
         }
@@ -170,10 +120,6 @@ char* get_client_str(int sock, int* dsize) {
     return result;
 }
 
-/*
- * Creeaza un id pentru client pe baza timpului curent.
- * Este o metoda simpla, suficienta pentru proiect.
- */
 int create_client_id(void) {
     char ctsmp[12];
     time_t rawtime;
@@ -188,19 +134,11 @@ int create_client_id(void) {
     return uuid;
 }
 
-/*
- * Functie ramasa neimplementata complet.
- * Momentan intoarce -1.
- */
 int extract_client_operation(char* data) {
     (void)data;
     return -1;
 }
 
-/*
- * Citeste din stats.txt valoarea curenta a campului images_processed.
- * Daca fisierul nu exista, intoarce 0.
- */
 static int read_images_processed_count(void) {
     FILE* f;
     char line[256];
@@ -222,10 +160,6 @@ static int read_images_processed_count(void) {
     return count;
 }
 
-/*
- * Rescrie fisierul stats.txt cu ultimele informatii primite.
- * Aici contorul este incrementat direct cu 1.
- */
 static void write_stats_file(int client_id,
                              const char* filename,
                              int initial_size,
@@ -251,10 +185,6 @@ static void write_stats_file(int client_id,
     fclose(f);
 }
 
-/*
- * Functia principala a thread-ului de retea.
- * Asculta conexiuni noi si proceseaza mesajele venite de la clienti.
- */
 void* inet_main(void* args) {
     int port = *((int*)args);
     int sock;
@@ -262,12 +192,10 @@ void* inet_main(void* args) {
     fd_set active_fd_set, read_fd_set;
     struct sockaddr_in clientname;
 
-    /* cream socketul serverului */
     if ((sock = inet_socket(port, 1)) < 0) {
         pthread_exit(NULL);
     }
 
-    /* trecem socketul in modul listen */
     if (listen(sock, 1) < 0) {
         pthread_exit(NULL);
     }
@@ -279,19 +207,14 @@ void* inet_main(void* args) {
         int i;
 
         read_fd_set = active_fd_set;
-
-        /* asteptam activitate pe unul dintre socketi */
         if (select(FD_SETSIZE, &read_fd_set, NULL, NULL, NULL) < 0) {
             pthread_exit(NULL);
         }
 
         for (i = 0; i < FD_SETSIZE; ++i) {
             if (FD_ISSET(i, &read_fd_set)) {
-
-                /* daca activitatea este pe socketul principal, acceptam un client nou */
                 if (i == sock) {
                     int newfd;
-
                     size = sizeof(clientname);
                     newfd = accept(sock, (struct sockaddr*)&clientname, (socklen_t*)&size);
                     if (newfd < 0) {
@@ -304,14 +227,12 @@ void* inet_main(void* args) {
                     int clientID;
                     msgHeaderType h = peekMsgHeader(i);
 
-                    /* daca id-ul clientului este invalid, inchidem conexiunea */
                     if ((clientID = h.clientID) < 0) {
                         fprintf(stderr, "Negative ClientID. Closing connection.\n");
                         close(i);
                         FD_CLR(i, &active_fd_set);
                     }
                     else {
-                        /* client nou: ii generam un id */
                         if (clientID == 0) {
                             int newID;
                             msgIntType m;
@@ -340,12 +261,9 @@ void* inet_main(void* args) {
                             }
 
                             switch (operation) {
-
-                            /* operatie simpla de echo */
                             case OPR_ECHO:
                             {
                                 msgStringType str;
-
                                 if (readSingleString(i, &str) < 0) {
                                     close(i);
                                     FD_CLR(i, &active_fd_set);
@@ -366,15 +284,12 @@ void* inet_main(void* args) {
                             }
                             break;
 
-                            /* concatenare - momentan nu este implementata aici */
                             case OPR_CONC:
                                 break;
 
-                            /* adunare a doua valori intregi */
                             case OPR_ADD:
                             {
                                 msgIntType m1, m2, m;
-
                                 if (readMultiInt(i, &m1, &m2) < 0) {
                                     close(i);
                                     FD_CLR(i, &active_fd_set);
@@ -393,11 +308,9 @@ void* inet_main(void* args) {
                             }
                             break;
 
-                            /* intoarce opusul unui numar */
                             case OPR_NEG:
                             {
                                 msgIntType m;
-
                                 if (readSingleInt(i, &m) < 0) {
                                     close(i);
                                     FD_CLR(i, &active_fd_set);
@@ -416,7 +329,6 @@ void* inet_main(void* args) {
                             }
                             break;
 
-                            /* primeste o imagine de la client si o pune in coada */
                             case OPR_SEND_IMAGE:
                             {
                                 char* filename = NULL;
@@ -435,12 +347,11 @@ void* inet_main(void* args) {
                                 fprintf(stderr, "Filename: %s\n", filename);
                                 fprintf(stderr, "File size: %d bytes\n", file_size);
 
-                                /* salvam rapid informatia in stats */
                                 write_stats_file(clientID, filename, file_size, 0, "IMAGE_RECEIVED");
 
                                 /*
-                                 * aici construim task-ul care va fi pus in coada
-                                 * pentru a fi procesat ulterior
+                                 * aici chiar trimitem imaginea in coada,
+                                 * nu doar socket-ul
                                  */
                                 ImageTask task;
                                 memset(&task, 0, sizeof(task));
@@ -452,7 +363,6 @@ void* inet_main(void* args) {
 
                                 push_task(task);
 
-                                /* trimitem confirmarea catre client */
                                 h.opID = OPR_ECHO;
                                 if (writeSingleString(i, h, response) < 0) {
                                     fprintf(stderr, "Could not send image confirmation to client %d\n", clientID);
@@ -463,7 +373,6 @@ void* inet_main(void* args) {
                             }
                             break;
 
-                            /* citeste un bloc binar, detecteaza formatul si il trimite inapoi */
                             case OPR_OPTIMIZE:
                             {
                                 msgBinaryType img;
@@ -476,7 +385,6 @@ void* inet_main(void* args) {
 
                                 {
                                     int type = detect_image_format(img.data, img.size);
-
                                     if (type == 0) {
                                         fprintf(stderr, "Unknown image format\n");
                                         free(img.data);
@@ -495,7 +403,6 @@ void* inet_main(void* args) {
                             }
                             break;
 
-                            /* inchiderea conexiunii sau operatie necunoscuta */
                             case OPR_BYE:
                             default:
                                 close(i);
@@ -511,19 +418,3 @@ void* inet_main(void* args) {
 
     pthread_exit(NULL);
 }
-
-/*
-Exemple de rulare:
-
-Fisierul este folosit din cadrul proiectului, nu se ruleaza separat.
-
-Comportament:
-- creeaza socketul TCP al serverului
-- accepta conexiuni de la clienti
-- atribuie id clientilor noi
-- trateaza operatii precum echo, add si neg
-- primeste imagini de la clienti
-- pune imaginile in coada pentru procesare
-- actualizeaza stats.txt dupa primirea unei imagini
-- inchide conexiunile invalide sau terminate
-*/

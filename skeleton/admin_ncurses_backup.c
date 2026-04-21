@@ -1,35 +1,12 @@
-/**
- * IR3 2026
- * monitor admin ncurses
- *
- * Programul afiseaza in terminal un mic panou de monitorizare
- * pentru statisticile salvate in fisierul stats.txt.
- *
- * Sunt afisate informatii precum:
- *  - cate imagini au fost procesate
- *  - ultimul fisier procesat
- *  - dimensiunea initiala si finala
- *  - ultimul client
- *  - ultimul status
- *  - ora ultimei actualizari
- *
- * Interfata se actualizeaza automat la fiecare 2 secunde.
- * Programul se inchide daca utilizatorul apasa tasta q.
- */
-
-#include <stdio.h>   /* utilizat pentru: FILE, fopen, fclose, fgets, snprintf */
-#include <stdlib.h>  /* utilizat pentru: EXIT_SUCCESS */
-#include <string.h>  /* utilizat pentru: strlen, strncmp, strcpy */
-#include <unistd.h>  /* utilizat pentru functii standard POSIX */
-#include <ncurses.h> /* utilizat pentru interfata text in terminal */
-#include <time.h>    /* utilizat pentru: time, localtime, strftime */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <ncurses.h>
+#include <time.h>
 
 #define MAX_LINE 256
 
-/* 
- * Structura in care pastram valorile citite din fisierul stats.txt.
- * Toate campurile sunt siruri de caractere pentru a afisa usor valorile.
- */
 typedef struct admin_stats {
     char images_processed[64];
     char last_filename[256];
@@ -41,13 +18,8 @@ typedef struct admin_stats {
     char stats_file_status[64];
 } admin_stats_t;
 
-/*
- * Elimina caracterul '\n' de la finalul unui sir, daca exista.
- * Este util dupa citirea unei linii cu fgets().
- */
 static void trim_newline(char* s) {
     size_t len;
-
     if (s == NULL) {
         return;
     }
@@ -58,11 +30,6 @@ static void trim_newline(char* s) {
     }
 }
 
-/*
- * Pune valori implicite in structura de statistici.
- * Aceste valori sunt folosite daca fisierul nu exista
- * sau daca anumite campuri nu au fost gasite.
- */
 static void set_default_stats(admin_stats_t* stats) {
     strcpy(stats->images_processed, "N/A");
     strcpy(stats->last_filename, "N/A");
@@ -74,15 +41,6 @@ static void set_default_stats(admin_stats_t* stats) {
     strcpy(stats->stats_file_status, "NOT FOUND");
 }
 
-/*
- * Verifica daca linia incepe cu cheia primita.
- * Daca da, copiaza partea din dreapta in destinatie.
- *
- * Exemplu:
- * line = "images_processed=15"
- * key  = "images_processed="
- * dest va primi "15"
- */
 static void parse_stat_line(const char* line, const char* key, char* dest, size_t dest_size) {
     size_t key_len = strlen(key);
 
@@ -91,10 +49,6 @@ static void parse_stat_line(const char* line, const char* key, char* dest, size_
     }
 }
 
-/*
- * Pune in buffer ora curenta, in format HH:MM:SS.
- * Daca apare o eroare la localtime(), se pune "N/A".
- */
 static void set_current_time(char* buffer, size_t buffer_size) {
     time_t now;
     struct tm* tm_info;
@@ -110,21 +64,6 @@ static void set_current_time(char* buffer, size_t buffer_size) {
     strftime(buffer, buffer_size, "%H:%M:%S", tm_info);
 }
 
-/*
- * Citeste statisticile din fisierul stats.txt si completeaza structura.
- *
- * Pasii sunt:
- *  1. se verifica daca pointerul este valid
- *  2. se pun valori implicite
- *  3. se seteaza ora ultimei actualizari
- *  4. se incearca deschiderea fisierului
- *  5. se citesc liniile una cate una
- *  6. se extrag valorile relevante
- *
- * Intoarce:
- *  - 0  daca citirea a reusit
- *  - -1 daca a aparut o problema
- */
 static int load_stats(admin_stats_t* stats) {
     FILE* f;
     char line[MAX_LINE];
@@ -133,13 +72,9 @@ static int load_stats(admin_stats_t* stats) {
         return -1;
     }
 
-    /* initializam structura cu valori implicite */
     set_default_stats(stats);
-
-    /* memoram momentul ultimei actualizari din interfata */
     set_current_time(stats->last_refresh_time, sizeof(stats->last_refresh_time));
 
-    /* deschidem fisierul de statistici */
     f = fopen("stats.txt", "r");
     if (f == NULL) {
         return -1;
@@ -147,7 +82,6 @@ static int load_stats(admin_stats_t* stats) {
 
     strcpy(stats->stats_file_status, "OK");
 
-    /* citim fiecare linie si extragem campurile cunoscute */
     while (fgets(line, sizeof(line), f) != NULL) {
         trim_newline(line);
 
@@ -163,10 +97,6 @@ static int load_stats(admin_stats_t* stats) {
     return 0;
 }
 
-/*
- * Deseneaza interfata in terminal folosind ncurses.
- * Sterge ecranul, afiseaza valorile si apoi face refresh.
- */
 static void draw_ui(const admin_stats_t* stats) {
     clear();
 
@@ -190,25 +120,14 @@ static void draw_ui(const admin_stats_t* stats) {
     refresh();
 }
 
-/*
- * Functia principala:
- *  - initializeaza ncurses
- *  - intra intr-o bucla infinita
- *  - reincarca statisticile la fiecare 2 secunde
- *  - redeseneaza interfata
- *  - iese din program daca utilizatorul apasa q
- */
 int main(void) {
     admin_stats_t stats;
     int ch;
 
-    /* pornim modul ncurses */
     initscr();
     cbreak();
     noecho();
     curs_set(0);
-
-    /* getch() va astepta maximum 2000 ms */
     timeout(2000);
 
     while (1) {
@@ -221,18 +140,6 @@ int main(void) {
         }
     }
 
-    /* revenim la modul normal al terminalului */
     endwin();
     return EXIT_SUCCESS;
 }
-
-/*1. rulare:
-    make
-   ./admin_ncurses
-
-2. comportament:
-   - citeste datele din fisierul stats.txt
-   - afiseaza statisticile intr-o interfata ncurses
-   - actualizeaza automat informatiile la fiecare 2 secunde
-   - se inchide daca utilizatorul apasa tasta q
-*/
