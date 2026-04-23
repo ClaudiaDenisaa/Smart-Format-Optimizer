@@ -412,21 +412,4 @@ int readImageMessage(int sock, char** filename,
 	return 0;
 }
 
-/**
- * Programul realizeaza ...
- */
 
-#include <stdio.h>  /* utilizat pentru: fprintf, stdout */
-#include <string.h> /* utilizat pentru: strstr */
-#include <stdlib.h> /* utilizat pentru: EXIT_SUCCESS, atoi */
-
-int main(int argc, char * argv[]){
-    /* verificam daca numarul de argumente este corect */
-    if(argc != 3){ 
-        fprintf(stderr, "Utilizare %s <val1> <val2>\n", argv[0]);
-        return EXIT_FAILURE;
-    }
-
-    /* aici va urma logica principala a programului */
-    return EXIT_SUCCESS;
-}

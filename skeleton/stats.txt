@@ -1,6 +1,6 @@
-images_processed=23
-last_filename=poza.jpg
-last_filesize_initial=99407
-last_filesize_final=68049
-last_client_id=1776791886
+images_processed=35
+last_filename=pcd.png
+last_filesize_initial=2459209
+last_filesize_final=2331106
+last_client_id=1776870548
 last_status=OPTIMIZED
